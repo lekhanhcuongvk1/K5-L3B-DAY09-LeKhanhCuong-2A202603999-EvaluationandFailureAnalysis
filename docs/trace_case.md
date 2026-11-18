@@ -1,6 +1,6 @@
 # Trace case: C-002@11
 
-Run lỗi: `E-seeded_regression-20261118-6892`. Đối chứng: cùng claim/seed trên `fixed`.
+Run lỗi: `E-seeded_regression-20261118-01cb`. Đối chứng: cùng claim/seed trên `fixed`.
 
 Ledger lỗi ghi 20000 VND, nhãn yêu cầu 0; status resolved thay vì denied.
 
@@ -12,5 +12,5 @@ Failure mode: **FM-03**. Đối chứng fixed không có model_override; quote b
 Regression test chạy được: `tests/test_lab9_student_regressions.py::test_lab9_first_wrong_step_claim_002`.
 Test xác nhận DbFactKept, RefundAmountCorrect và lab8_pass đều false trên seeded_regression, true trên fixed.
 
-Bằng chứng máy đọc: `src/reports/trace_case_C002.json`. Baseline liên quan: `E-swarm-20261118-6892`.
+Bằng chứng máy đọc: `src/reports/trace_case_C002.json`. Baseline liên quan: `E-swarm-20261118-01cb`.
 Giới hạn: trace chứng minh bước ghi đè và hậu quả trong MockLLM; không chứng minh suy nghĩ bên trong model thật.

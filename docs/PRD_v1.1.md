@@ -8,7 +8,7 @@ Không thêm tính năng agent. Bổ sung định nghĩa chạy đúng đo đư�
 
 Sandbox LogiX-VN: claim giao trễ/hàng hỏng trong public world; quyền theo principal, approval hợp lệ và hạn mức host. Không xử lý production, tranh chấp pháp lý hoặc chuyển tiền thật. Không tự quyết định hạn mức mới ngoài policy của host.
 
-## Tiêu chí release — baseline `E-swarm-20261118-6892`
+## Tiêu chí release — baseline `E-swarm-20261118-01cb`
 
 | Metric | Ngưỡng | Blocking | Baseline |
 |---|---|---|---:|

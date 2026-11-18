@@ -42,7 +42,13 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def sha12(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    """Hash UTF-8 text with LF line endings on every OS.
+
+    Git can checkout CRLF on Windows and LF on Linux without changing eval items.
+    Normalize only newline encoding; actual item edits must still change the SHA.
+    """
+    content = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()[:12]
 
 
 def build(source: Path = SOURCE) -> tuple[int, int]:

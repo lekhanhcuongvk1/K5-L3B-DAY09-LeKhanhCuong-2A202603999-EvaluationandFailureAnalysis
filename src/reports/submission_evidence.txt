@@ -124,7 +124,7 @@ flaky_regression_v2
   slice:denial/pass_rate: 0.9272727272727274 delta=-0.018 CI=[-0.109,+0.073] ok
 exit 1 — blocked: pass_hat_5, pass_rate, slice:money_movement/pass_rate
 
-gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval set cb2b27f81ab5
+gate: PR E-slice_regression-20261118-3f17 vs main E-swarm-20261118-3f17 · eval set 3f1765d27d44
   INTEGRITY PR: invalid blocking metric pass_hat_5
   INTEGRITY PR: invalid reliability metric pass_at_3
   INTEGRITY PR: invalid reliability metric pass_hat_3
@@ -135,7 +135,7 @@ gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval 
 exit 1 — blocked: integrity
 
 
-gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval set cb2b27f81ab5
+gate: PR E-slice_regression-20261118-3f17 vs main E-swarm-20261118-3f17 · eval set 3f1765d27d44
   INTEGRITY PR: incomplete manifest coverage
   INTEGRITY PR: duplicated or missing item/seed pairs
   INTEGRITY PR: invalid blocking metric pass_hat_5
@@ -148,14 +148,14 @@ gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval 
 exit 1 — blocked: integrity
 
 
-gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval set cb2b27f81ab5
+gate: PR E-slice_regression-20261118-3f17 vs main E-swarm-20261118-3f17 · eval set 3f1765d27d44
+  INTEGRITY PR: invalid row metric proposal_amount_correct
   INTEGRITY PR: invalid row metric pass_rate
   INTEGRITY PR: invalid row metric refund_amount_correct
-  INTEGRITY PR: invalid row metric proposal_amount_correct
 exit 1 — blocked: integrity
 
 
-gate: PR E-slice_regression-20261118-cb2b vs main E-swarm-20261118-cb2b · eval set cb2b27f81ab5
+gate: PR E-slice_regression-20261118-3f17 vs main E-swarm-20261118-3f17 · eval set 3f1765d27d44
   INTEGRITY ratchet: loosened proposal_amount_correct/min
   INTEGRITY ratchet: loosened reply_ledger_consistent/min
   INTEGRITY ratchet: loosened pass_hat_5/min

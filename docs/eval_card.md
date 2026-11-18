@@ -2,7 +2,7 @@
 
 ## Phiên bản và khả năng tái lập
 
-Eval set v1 SHA `68922037fe95`; v2 SHA `cb2b27f81ab5`.
+Eval set v1 SHA `01cba42c4124`; v2 SHA `3f1765d27d44`.
 Seeds chính: 11/22/33/44/55. Seed A/A: 66/77/88/99/110. MockLLM và judge replay; không cần API key.
 Code/grader commit: xem commit chứa report; spec v1/v2 được commit cùng dữ liệu. Lệnh tái lập: `python -m lab9.submission` từ src.
 
@@ -10,15 +10,15 @@ Code/grader commit: xem commit chứa report; spec v1/v2 được commit cùng d
 
 | Report/run ID | pass_rate | refund đúng | reply/ledger | pass_hat_5 | Gate |
 |---|---:|---:|---:|---:|---|
-| baseline_v1: E-swarm-20261118-6892 | 0.9857 | 0.9857 | 1.0 | — | merge |
-| fixed_v1: E-fixed-20261118-6892 | 1.0 | 1.0 | 1.0 | — | merge |
-| seeded_regression_v1: E-seeded_regression-20261118-6892 | 0.7143 | 0.8571 | 0.7857 | — | BLOCK: reply_ledger_consistent, refund_amount_correct, pass_rate |
-| baseline_v2: E-swarm-20261118-cb2b | 0.9786 | 0.9786 | 1.0 | 0.8929 | merge |
-| fixed_v2: E-fixed-20261118-cb2b | 1.0 | 1.0 | 1.0 | 1.0 | merge |
-| honest_refactor_v2: E-honest_refactor-20261118-cb2b | 1.0 | 1.0 | 1.0 | 1.0 | merge |
-| seeded_regression_v2: E-seeded_regression-20261118-cb2b | 0.6429 | 0.7857 | 0.7143 | 0.6429 | BLOCK: reply_ledger_consistent, pass_hat_5, refund_amount_correct, pass_rate, slice:money_movement/pass_rate, slice:adversarial/pass_rate, slice:denial/pass_rate |
-| slice_regression_v2: E-slice_regression-20261118-cb2b | 0.9357 | 0.9357 | 1.0 | 0.8929 | BLOCK: slice:money_movement/pass_rate |
-| flaky_regression_v2: E-flaky_regression-20261118-cb2b | 0.9143 | 0.9643 | 1.0 | 0.5714 | BLOCK: pass_hat_5, pass_rate, slice:money_movement/pass_rate |
+| baseline_v1: E-swarm-20261118-01cb | 0.9857 | 0.9857 | 1.0 | — | merge |
+| fixed_v1: E-fixed-20261118-01cb | 1.0 | 1.0 | 1.0 | — | merge |
+| seeded_regression_v1: E-seeded_regression-20261118-01cb | 0.7143 | 0.8571 | 0.7857 | — | BLOCK: reply_ledger_consistent, refund_amount_correct, pass_rate |
+| baseline_v2: E-swarm-20261118-3f17 | 0.9786 | 0.9786 | 1.0 | 0.8929 | merge |
+| fixed_v2: E-fixed-20261118-3f17 | 1.0 | 1.0 | 1.0 | 1.0 | merge |
+| honest_refactor_v2: E-honest_refactor-20261118-3f17 | 1.0 | 1.0 | 1.0 | 1.0 | merge |
+| seeded_regression_v2: E-seeded_regression-20261118-3f17 | 0.6429 | 0.7857 | 0.7143 | 0.6429 | BLOCK: reply_ledger_consistent, pass_hat_5, refund_amount_correct, pass_rate, slice:money_movement/pass_rate, slice:adversarial/pass_rate, slice:denial/pass_rate |
+| slice_regression_v2: E-slice_regression-20261118-3f17 | 0.9357 | 0.9357 | 1.0 | 0.8929 | BLOCK: slice:money_movement/pass_rate |
+| flaky_regression_v2: E-flaky_regression-20261118-3f17 | 0.9143 | 0.9643 | 1.0 | 0.5714 | BLOCK: pass_hat_5, pass_rate, slice:money_movement/pass_rate |
 
 ## Paired bootstrap v1
 
