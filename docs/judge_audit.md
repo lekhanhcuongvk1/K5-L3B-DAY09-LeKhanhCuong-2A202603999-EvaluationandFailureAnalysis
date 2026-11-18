@@ -1,15 +1,15 @@
-# Judge audit
+# Kiểm định judge
 
-FAIL là lớp dương. Floors: κ ≥ 0.6, P ≥ 0.8, R ≥ 0.7.
+Tôi đối chiếu kết quả judge với nhãn người trong hai bộ CSV công khai. FAIL được xem là lớp dương vì mục tiêu là tìm lỗi. Judge chỉ được dùng khi đồng thời đạt κ ≥ 0.6, precision ≥ 0.8 và recall ≥ 0.7.
 
 | Judge | n | κ | P | R | TP/FP/FN/TN | Quyết định |
 |---|---:|---:|---:|---:|---|---|
 | tone | 100 | 0.757 | 0.857 | 0.8 | 24/4/6/66 | Dùng cho tone |
 | helpful | 100 | 0.375 | 1.0 | 0.3 | 9/0/21/70 | Loại khỏi gate |
 
-## Audit thủ công
+## Phân tích các trường hợp bất đồng
 
-Các quyết định dưới đây là nhận định đối chiếu với nhãn và rubric, chưa phải nhãn held-out mới.
+Bảng dưới ghi lại cách tôi đối chiếu câu trả lời với tiêu chí chấm. Đây là phân tích trên dữ liệu công khai, chưa phải một bộ nhãn độc lập mới.
 
 | Case | Judge / người | Nhận định | Sửa rubric |
 |---|---|---|---|
@@ -20,9 +20,9 @@ Các quyết định dưới đây là nhận định đối chiếu với nhãn
 | H-051 | FAIL / PASS | Người đúng về tone: câu lịch sự dù có từ refund. | Tách sở thích thuần Việt khỏi tiêu chí lịch sự; không dùng tone để xác nhận tiền. |
 | HL-015 | PASS / FAIL | Giữ nhãn người cho helpful; chỉ câu đã hoàn tiền chưa đủ xác minh tác vụ. | Cần context yêu cầu, ledger và hành động; không suy ra đúng chỉ từ lời xác nhận. |
 
-## Kết luận
+## Quyết định sử dụng
 
-Tone đạt floors nhưng vẫn bỏ sót lỗi; helpful có recall 0.3 và κ 0.375, bỏ sót 21/30 lỗi dù precision 1.0. Không dùng helpful làm gate. Tiền và approval luôn chấm bằng code.
+Tôi giữ tone cho việc đánh giá giọng điệu vì cả ba chỉ số đều đạt ngưỡng. Tuy nhiên, judge này vẫn bỏ sót lỗi. Với helpful, precision bằng 1.0 nhưng recall chỉ 0.3 và κ bằng 0.375: 21 trong 30 lỗi không được phát hiện. Vì vậy, tôi loại helpful khỏi gate. Số tiền và approval được kiểm tra bằng code.
 
 Rogan–Gladen hiệu chỉnh fail rate của cả hai bộ về 0.3; hiệu chỉnh tỷ lệ không làm classifier đủ đáng tin.
 

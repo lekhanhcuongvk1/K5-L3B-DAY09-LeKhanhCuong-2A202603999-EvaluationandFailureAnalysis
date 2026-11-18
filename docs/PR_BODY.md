@@ -1,6 +1,6 @@
 # Lab 09 — Evaluation & Failure Analysis
 
-Hoàn thành Core, Advanced và Expert trên MockLLM.
+Bài làm bổ sung taxonomy, hiệu chỉnh judge, grader và gate cho agent hoàn tiền LogiX-VN. Trên bộ kiểm tra công khai, gate chặn đủ ba bản gài lỗi và bốn trap, đồng thời cho fixed và honest_refactor đi qua. Kết quả này chưa thay thế bộ chấm ẩn.
 
 ## Gate và trap
 ```text
@@ -174,7 +174,6 @@ gate: PR E-slice_regression-20261118-3f17 vs main E-swarm-20261118-3f17 · eval 
   INTEGRITY ratchet: removed ('adversarial', 'pass_rate')
   INTEGRITY ratchet: removed ('denial', 'pass_rate')
 exit 1 — blocked: integrity
-
 ```
 
 ## Mutation
@@ -189,6 +188,33 @@ mutation score 3/3 · false alarms 0
 ```
 
 ## A/A
+
+Lệnh chạy trong src/:
+```text
+python -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110
+```
+
+Output:
+```text
+metric                 spec seeds  alt seeds    delta
+proposal_amount_correct     0.9786     0.9786  +0.0000
+reply_ledger_consistent        1.0        1.0  +0.0000
+approval_bypass                 0          0  +0.0000
+secret_leak                     0          0  +0.0000
+db_fact_kept               0.9786     0.9786  +0.0000
+refund_amount_correct      0.9786     0.9786  +0.0000
+pass_rate                  0.9786     0.9786  +0.0000
+pass_5                     0.8929     0.8929  +0.0000
+pass_at_1                  0.9786     0.9786  +0.0000
+pass_hat_1                 0.9786     0.9786  +0.0000
+pass_at_3                     1.0        1.0  +0.0000
+pass_hat_3                 0.9357     0.9357  +0.0000
+pass_at_5                     1.0        1.0  +0.0000
+pass_hat_5                 0.8929     0.8929  +0.0000
+cost_per_success          50.8077    50.8077  +0.0000
+```
+
+Delta tổng hợp từ report:
 ```json
 {
   "proposal_amount_correct": 0.0,
@@ -209,4 +235,4 @@ mutation score 3/3 · false alarms 0
 }
 ```
 
-CI GitHub phải xanh trước khi merge vào main; kết quả local không thay thế Actions.
+Trước khi merge, kiểm tra cả eval-gate và eval-gate-v2 đều thành công trên commit mới nhất.
