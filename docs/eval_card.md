@@ -1,4 +1,6 @@
-# Eval card — LogiX-VN
+# Báo cáo đánh giá — LogiX-VN
+
+Tôi đánh giá agent hoàn tiền bằng cùng tập claim và seed để so sánh baseline với các bản gài lỗi. Mục tiêu là kiểm tra gate có chặn được hồi quy mà vẫn cho bản đúng đi qua hay không. Các bảng dưới được tổng hợp từ report trong src/reports/.
 
 ## Phiên bản và khả năng tái lập
 
@@ -20,9 +22,11 @@ Code/grader commit: xem commit chứa report; spec v1/v2 được commit cùng d
 | slice_regression_v2: E-slice_regression-20261118-3f17 | 0.9357 | 0.9357 | 1.0 | 0.8929 | BLOCK: slice:money_movement/pass_rate |
 | flaky_regression_v2: E-flaky_regression-20261118-3f17 | 0.9143 | 0.9643 | 1.0 | 0.5714 | BLOCK: pass_hat_5, pass_rate, slice:money_movement/pass_rate |
 
+Baseline chưa hoàn hảo: pass_rate v1 đạt 0.9857 và proposal_amount_correct còn cảnh báo. Metric đề xuất là chỉ số theo dõi, không chặn merge. Trên v2, slice_regression vẫn có pass_rate 0.9357 nhưng bị slice money_movement chặn; nếu chỉ nhìn điểm trung bình toàn bộ thì lỗi này sẽ lọt. Bản fixed và honest_refactor đều được gate chấp nhận.
+
 ## Paired bootstrap v1
 
-Δ = PR − baseline; đơn vị resample là item, sau khi lấy trung bình 5 seed. 1000 percentile resamples, RNG 2027, CI 95%.
+Tôi tính Δ = PR − baseline. Mỗi mẫu bootstrap là một item sau khi lấy trung bình 5 seed, thay vì coi các seed là những ca độc lập. Cấu hình dùng 1000 lần lấy mẫu, RNG 2027 và CI 95% theo phương pháp percentile.
 
 | PR | Metric | Δ | CI 95% |
 |---|---|---:|---|
@@ -58,7 +62,7 @@ A/A đo hai bộ seed trên cùng swarm:
 | pass_hat_5 | +0.0000 |
 | cost_per_success | +0.0000 |
 
-Đặt floor pass_hat_5 = 0.8 (yêu cầu Expert). A/A đo trên MockLLM có dao động metric chất lượng bằng 0, nhưng cost có thể khác do token budget theo seed. Floor phải thấp hơn vùng biến thiên của agent tốt; với LLM thật phải lặp nhiều A/A để ước lượng vùng nhiễu trước khi chốt ngưỡng.
+Tôi đặt sàn pass_hat_5 ở 0.8. Baseline v2 đạt 0.8929; hai bộ seed A/A cho cùng kết quả, nên sàn thấp hơn mức baseline đo được 0.0929. Trên lần chạy này, delta A/A của cả chất lượng và chi phí đều bằng 0. Khoảng cách đó giúp baseline không bị chặn, đồng thời vẫn giữ yêu cầu sàn tối thiểu 0.8 của bài. Hai bộ seed chưa đủ để ước lượng phân bố nhiễu của LLM thật; khi đổi model, cần chạy nhiều A/A trước khi chọn ngưỡng.
 
 money_movement: pass_rate ≥0.95; adversarial ≥0.85; denial ≥0.90. Mỗi slice cũng chặn khi CI của Δ nằm hoàn toàn dưới 0. money_movement nhắm lỗi cộng điều khoản trên các ca có hoàn tiền; pass_hat_5 nhắm lỗi chỉ xuất hiện một seed. FM-08 dùng reply_ledger_consistent ≥1.0, không phụ thuộc dấu model_override.
 
@@ -66,7 +70,7 @@ Integrity kiểm tra coverage và multiplicity item/seed, tag slice, evaluator f
 
 ## Giới hạn và vận hành
 
-14 item v1, 28 item v2; CI rộng, không đại diện người dùng thật. Judge replay không phải held-out mới. Bug kích hoạt ở khoảng 1/3 seed không phát hiện ổn định chỉ với 5 seed; không hạ sàn để cố bắt mọi lần.
+Kết quả hiện chỉ áp dụng cho 14 item v1 và 28 item v2 chạy bằng MockLLM. Cỡ mẫu nhỏ làm CI rộng; bộ judge replay cũng đã công khai nên chưa thể xem là held-out mới. Với lỗi kích hoạt ở khoảng 1/3 seed, chỉ 5 seed chưa bảo đảm phát hiện ổn định. Tôi giữ giới hạn này trong báo cáo, không hạ ngưỡng để cố bắt mọi lần.
 Legacy swarm không ghi reply: metric FM-08 chỉ xác nhận không có phát biểu tiền quan sát được mâu thuẫn; không chứng minh tính đầy đủ của câu trả lời. Parser tiền hỗ trợ VND nguyên có ký hiệu tiền, cần mở rộng/test nếu có nhiều loại tiền hoặc câu chứa nhiều khoản khác nhau.
 Baseline phải lấy từ commit được tin cậy. Integrity không có chữ ký mật mã; không chứng minh được tính xác thực của cả baseline lẫn mọi dòng bị làm giả nhất quán.
 Eval owner: Lê Khánh Cường. Gate đỏ: không merge, điều tra trace và sửa grader/spec có version hoặc agent ở bài tiếp theo. Pilot chỉ sandbox public claims; chưa bật hoàn tiền production. Đổi item/label/seeds: tăng eval-set version và chạy baseline mới; đổi metric/spec: tăng metric_spec_version, giữ ratchet trên cùng eval set.
@@ -75,7 +79,7 @@ Eval owner: Lê Khánh Cường. Gate đỏ: không merge, điều tra trace và
 
 ### Detection
 ```text
-detection 100.00%; false alarms 0.00% (official definition, reused reports)
+detection 100.00%; false alarms 0.00%
 ```
 ### Mutation
 ```text

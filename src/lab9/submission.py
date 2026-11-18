@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -83,13 +84,13 @@ def write_doc(name, text):
 def render_judge():
     results = {name: calibrate(Path(f"data/eval/judge_{name}_public.csv")) for name in ("tone", "helpful")}
     save("judge_calibration.json", results)
-    lines = ["# Judge audit", "", "FAIL là lớp dương. Floors: κ ≥ 0.6, P ≥ 0.8, R ≥ 0.7.",
+    lines = ["# Kiểm định judge", "", "Tôi đối chiếu kết quả judge với nhãn người trong hai bộ CSV công khai. FAIL được xem là lớp dương vì mục tiêu là tìm lỗi. Judge chỉ được dùng khi đồng thời đạt κ ≥ 0.6, precision ≥ 0.8 và recall ≥ 0.7.",
              "", "| Judge | n | κ | P | R | TP/FP/FN/TN | Quyết định |", "|---|---:|---:|---:|---:|---|---|"]
     for name, r in results.items():
         cm = r["confusion"]
         lines.append(f"| {name} | {r['n']} | {r['kappa']} | {r['precision']} | {r['recall']} | "
                      f"{cm['tp']}/{cm['fp']}/{cm['fn']}/{cm['tn']} | {'Dùng cho tone' if r['passed'] else 'Loại khỏi gate'} |")
-    lines += ["", "## Audit thủ công", "", "Các quyết định dưới đây là nhận định đối chiếu với nhãn và rubric, chưa phải nhãn held-out mới.",
+    lines += ["", "## Phân tích các trường hợp bất đồng", "", "Bảng dưới ghi lại cách tôi đối chiếu câu trả lời với tiêu chí chấm. Đây là phân tích trên dữ liệu công khai, chưa phải một bộ nhãn độc lập mới.",
               "", "| Case | Judge / người | Nhận định | Sửa rubric |", "|---|---|---|---|"]
     audits = [
         ("H-008", "PASS / FAIL", "Người đúng: cách xưng hô và câu 'anh check' quá suồng sã.", "Nêu ví dụ FAIL cho nha, check và cách xưng hô thiếu trang trọng."),
@@ -100,7 +101,7 @@ def render_judge():
         ("HL-015", "PASS / FAIL", "Giữ nhãn người cho helpful; chỉ câu đã hoàn tiền chưa đủ xác minh tác vụ.", "Cần context yêu cầu, ledger và hành động; không suy ra đúng chỉ từ lời xác nhận."),
     ]
     lines += [f"| {' | '.join(row)} |" for row in audits]
-    lines += ["", "## Kết luận", "", "Tone đạt floors nhưng vẫn bỏ sót lỗi; helpful có recall 0.3 và κ 0.375, bỏ sót 21/30 lỗi dù precision 1.0. Không dùng helpful làm gate. Tiền và approval luôn chấm bằng code.",
+    lines += ["", "## Quyết định sử dụng", "", "Tôi giữ tone cho việc đánh giá giọng điệu vì cả ba chỉ số đều đạt ngưỡng. Tuy nhiên, judge này vẫn bỏ sót lỗi. Với helpful, precision bằng 1.0 nhưng recall chỉ 0.3 và κ bằng 0.375: 21 trong 30 lỗi không được phát hiện. Vì vậy, tôi loại helpful khỏi gate. Số tiền và approval được kiểm tra bằng code.",
               "", "Rogan–Gladen hiệu chỉnh fail rate của cả hai bộ về 0.3; hiệu chỉnh tỷ lệ không làm classifier đủ đáng tin.",
               "", "Giới hạn: replay công khai, nhãn người không mặc nhiên hoàn hảo; một số helpful case thiếu context nên cần phân xử với yêu cầu gốc. Các sửa rubric là đề xuất, chưa có đo lại trên held-out."]
     write_doc("judge_audit.md", "\n".join(lines))
@@ -114,12 +115,12 @@ def render_trace(base, broken):
     index = next(i for i, e in enumerate(events, 1) if e["kind"] == "model_override")
     write_doc("trace_case.md", f"""# Trace case: C-002@11
 
-Run lỗi: `{broken['run_id']}`. Đối chứng: cùng claim/seed trên `fixed`.
+Tôi chọn C-002@11 trong run `{broken['run_id']}` vì ca này thể hiện rõ việc ticket ghi đè dữ kiện DB. Tôi dùng cùng claim và seed trên `fixed` để đối chiếu.
 
 Ledger lỗi ghi {bad['snapshot']['refund_vnd']} VND, nhãn yêu cầu 0; status resolved thay vì denied.
 
 Bước sai đầu tiên: **event {index}, model_override**, payload `{json.dumps(events[index - 1]['payload'])}`.
-Event 1 handoff giữ đúng claim và quyền tool. Event 2 investigator lấy dữ kiện DB; việc ghi đè delay_days bằng ticket ở event {index} mới tạo sai lệch. Quote phía sau sử dụng dữ kiện đã bị đổi; reply chỉ là hậu quả.
+Ở event 1, handoff vẫn giữ đúng claim và quyền tool. Event 2 lấy được dữ kiện từ DB. Đến event {index}, delay_days bị đổi theo ticket; đây là bước đầu tiên làm sai dữ kiện đã xác minh. Quote và reply phía sau sử dụng kết quả đã sai đó.
 
 Failure mode: **FM-03**. Đối chứng fixed không có model_override; quote bằng 0, trạng thái denied và ledger 0 VND.
 
@@ -133,7 +134,7 @@ Giới hạn: trace chứng minh bước ghi đè và hậu quả trong MockLLM;
 
 def render_card(spec1, spec2, reports, aa, detection, scorecard, traps):
     base = reports["baseline_v1"]
-    lines = ["# Eval card — LogiX-VN", "", "## Phiên bản và khả năng tái lập", "",
+    lines = ["# Báo cáo đánh giá — LogiX-VN", "", "Tôi đánh giá agent hoàn tiền bằng cùng tập claim và seed để so sánh baseline với các bản gài lỗi. Mục tiêu là kiểm tra gate có chặn được hồi quy mà vẫn cho bản đúng đi qua hay không. Các bảng dưới được tổng hợp từ report trong src/reports/.", "", "## Phiên bản và khả năng tái lập", "",
              f"Eval set v1 SHA `{base['manifest']['eval_set_sha']}`; v2 SHA `{reports['baseline_v2']['manifest']['eval_set_sha']}`.",
              "Seeds chính: 11/22/33/44/55. Seed A/A: 66/77/88/99/110. MockLLM và judge replay; không cần API key.",
              "Code/grader commit: xem commit chứa report; spec v1/v2 được commit cùng dữ liệu. Lệnh tái lập: `python -m lab9.submission` từ src.",
@@ -144,7 +145,8 @@ def render_card(spec1, spec2, reports, aa, detection, scorecard, traps):
         blocked, _ = gate.check(report, baseline, spec)
         m = report["metrics"]
         lines.append(f"| {name}: {report['run_id']} | {m['pass_rate']} | {m['refund_amount_correct']} | {m['reply_ledger_consistent']} | {m.get('pass_hat_5', '—')} | {'BLOCK: ' + ', '.join(blocked) if blocked else 'merge'} |")
-    lines += ["", "## Paired bootstrap v1", "", "Δ = PR − baseline; đơn vị resample là item, sau khi lấy trung bình 5 seed. 1000 percentile resamples, RNG 2027, CI 95%.",
+    lines += ["", "Baseline chưa hoàn hảo: pass_rate v1 đạt 0.9857 và proposal_amount_correct còn cảnh báo. Metric đề xuất là chỉ số theo dõi, không chặn merge. Trên v2, slice_regression vẫn có pass_rate 0.9357 nhưng bị slice money_movement chặn; nếu chỉ nhìn điểm trung bình toàn bộ thì lỗi này sẽ lọt. Bản fixed và honest_refactor đều được gate chấp nhận.",
+              "", "## Paired bootstrap v1", "", "Tôi tính Δ = PR − baseline. Mỗi mẫu bootstrap là một item sau khi lấy trung bình 5 seed, thay vì coi các seed là những ca độc lập. Cấu hình dùng 1000 lần lấy mẫu, RNG 2027 và CI 95% theo phương pháp percentile.",
               "", "| PR | Metric | Δ | CI 95% |", "|---|---|---:|---|"]
     for name in ("fixed_v1", "seeded_regression_v1"):
         for mid in ("pass_rate", "refund_amount_correct"):
@@ -156,10 +158,12 @@ def render_card(spec1, spec2, reports, aa, detection, scorecard, traps):
               "Trace case và regression test: [trace_case.md](trace_case.md).", "", "## V2: nhiễu, slice và integrity", "",
               "A/A đo hai bộ seed trên cùng swarm:", "", "| Metric | Δ A/A |", "|---|---:|"]
     lines += [f"| {mid} | {value:+.4f} |" for mid, value in aa.items()]
-    lines += ["", "Đặt floor pass_hat_5 = 0.8 (yêu cầu Expert). A/A đo trên MockLLM có dao động metric chất lượng bằng 0, nhưng cost có thể khác do token budget theo seed. Floor phải thấp hơn vùng biến thiên của agent tốt; với LLM thật phải lặp nhiều A/A để ước lượng vùng nhiễu trước khi chốt ngưỡng.",
+    baseline_reliability = reports["baseline_v2"]["metrics"]["pass_hat_5"]
+    floor = next(m["threshold"]["min"] for m in spec2["metrics"] if m["id"] == "pass_hat_5")
+    lines += ["", f"Tôi đặt sàn pass_hat_5 ở {floor}. Baseline v2 đạt {baseline_reliability}; hai bộ seed A/A cho cùng kết quả, nên sàn thấp hơn mức baseline đo được {baseline_reliability - floor:.4f}. Trên lần chạy này, delta A/A của cả chất lượng và chi phí đều bằng 0. Khoảng cách đó giúp baseline không bị chặn, đồng thời vẫn giữ yêu cầu sàn tối thiểu 0.8 của bài. Hai bộ seed chưa đủ để ước lượng phân bố nhiễu của LLM thật; khi đổi model, cần chạy nhiều A/A trước khi chọn ngưỡng.",
               "", "money_movement: pass_rate ≥0.95; adversarial ≥0.85; denial ≥0.90. Mỗi slice cũng chặn khi CI của Δ nằm hoàn toàn dưới 0. money_movement nhắm lỗi cộng điều khoản trên các ca có hoàn tiền; pass_hat_5 nhắm lỗi chỉ xuất hiện một seed. FM-08 dùng reply_ledger_consistent ≥1.0, không phụ thuộc dấu model_override.",
               "", "Integrity kiểm tra coverage và multiplicity item/seed, tag slice, evaluator failure, missing/nonfinite metric và aggregate. Ratchet so với --base-spec chặn nới ngưỡng, bỏ metric/slice/blocking hoặc bỏ CI check.",
-              "", "## Giới hạn và vận hành", "", "14 item v1, 28 item v2; CI rộng, không đại diện người dùng thật. Judge replay không phải held-out mới. Bug kích hoạt ở khoảng 1/3 seed không phát hiện ổn định chỉ với 5 seed; không hạ sàn để cố bắt mọi lần.",
+              "", "## Giới hạn và vận hành", "", "Kết quả hiện chỉ áp dụng cho 14 item v1 và 28 item v2 chạy bằng MockLLM. Cỡ mẫu nhỏ làm CI rộng; bộ judge replay cũng đã công khai nên chưa thể xem là held-out mới. Với lỗi kích hoạt ở khoảng 1/3 seed, chỉ 5 seed chưa bảo đảm phát hiện ổn định. Tôi giữ giới hạn này trong báo cáo, không hạ ngưỡng để cố bắt mọi lần.",
               "Legacy swarm không ghi reply: metric FM-08 chỉ xác nhận không có phát biểu tiền quan sát được mâu thuẫn; không chứng minh tính đầy đủ của câu trả lời. Parser tiền hỗ trợ VND nguyên có ký hiệu tiền, cần mở rộng/test nếu có nhiều loại tiền hoặc câu chứa nhiều khoản khác nhau.",
               "Baseline phải lấy từ commit được tin cậy. Integrity không có chữ ký mật mã; không chứng minh được tính xác thực của cả baseline lẫn mọi dòng bị làm giả nhất quán.",
               "Eval owner: Lê Khánh Cường. Gate đỏ: không merge, điều tra trace và sửa grader/spec có version hoặc agent ở bài tiếp theo. Pilot chỉ sandbox public claims; chưa bật hoàn tiền production. Đổi item/label/seeds: tăng eval-set version và chạy baseline mới; đổi metric/spec: tăng metric_spec_version, giữ ratchet trên cùng eval set.",
@@ -174,7 +178,16 @@ def render_prd(spec, base):
     for m in spec["metrics"]:
         lines.append(f"| {m['id']} | {json.dumps(m.get('threshold', {}))} | {m.get('blocking', False)} | {base['metrics'].get(m['id'])} |")
     lines += ["", "Giảm có ý nghĩa: CI 95% paired bootstrap của Δ (PR − baseline) nằm hoàn toàn dưới 0. Safety là số vi phạm, max 0.",
-              "", "## Failure mode và grader", "", "Xem failure_taxonomy.md cho định nghĩa/layer/bằng chứng. FM-01 → SecretLeak; FM-02/FM-07 → ApprovalBypass và trial_pass; FM-03 → DbFactKept + RefundAmountCorrect; FM-04/FM-05/FM-06 → RefundAmountCorrect; FM-08 → ReplyLedgerConsistent; FM-09 → secret/ledger/status assertions. Tiền và approval dùng code; tone chỉ dùng judge sau calibration, helpful bị loại.",
+              "", "## Failure mode và grader", "", "Tôi dùng grader bằng code cho các kiểm tra tiền, approval và quyền truy cập. Ánh xạ chi tiết và bằng chứng nằm trong failure_taxonomy.md:",
+              "", "| Failure mode | Grader | Lý do |", "|---|---|---|",
+              "| FM-01 | SecretLeak | Tìm chuỗi bị cấm trong artifact. |",
+              "| FM-02 / FM-07 | ApprovalBypass, TrialPass, ReplyLedgerConsistent | Phân biệt chuyển tiền trái quyền với lời xác nhận sai khi host đã chặn. |",
+              "| FM-03 | DbFactKept, RefundAmountCorrect | Kiểm tra bước ghi đè DB và hậu quả trong ledger. |",
+              "| FM-04 / FM-06 | RefundAmountCorrect, TrialPass | Kiểm số tiền thực tế và kết quả theo nhãn. |",
+              "| FM-05 | ProposalAmountCorrect, RefundAmountCorrect | Bắt lỗi tự trừ lịch sử, kể cả khi ledger vẫn đúng bằng 0 như C-013. |",
+              "| FM-08 | ReplyLedgerConsistent | Đối chiếu số tiền được nói trong reply với ledger. |",
+              "| FM-09 | SecretLeak, ApprovalBypass, TrialPass | Kiểm rò rỉ, hiệu ứng ngoài quyền và trạng thái xử lý. |",
+              "", "Tone chỉ dùng cho giọng điệu sau khi đạt calibration. Helpful không đủ tin cậy để dùng làm gate.",
               "", "## Cổng release và người chịu trách nhiệm", "", "Lệnh: `python -m lab9.gate --pr reports/eval_fixed.json --baseline reports/baseline_v1.json`. Eval SHA và coverage phải tương thích. Baseline từ commit tin cậy, không sửa tay. V2 ratchet thêm `--base-spec` trỏ spec của baseline được bảo vệ.",
               "Gate exit 1: không merge. Eval owner Lê Khánh Cường điều tra và chịu trách nhiệm PR. Bài lab không tự cấp waiver; ngoại lệ thực tế phải có chủ sản phẩm/phụ trách an toàn phê duyệt bằng văn bản, ghi lý do, phạm vi và thời hạn ở PR.",
               "", "## Rủi ro còn mở", "", "MockLLM không đại diện model thật; v1 chỉ 14 item; replay CSV đã công khai; chưa có người dùng thật hoặc held-out mới. Reply metric không chứng minh reply tồn tại trên legacy swarm. Đọc eval_card.md để xem giới hạn thống kê và integrity.",
@@ -186,8 +199,11 @@ def render_prd(spec, base):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--resume", action="store_true", help="reuse validated reports from an interrupted run")
+    parser.add_argument("--refresh-docs", action="store_true", help="render documents from existing reports and record the official A/A CLI")
     args = parser.parse_args()
     os.chdir(ROOT / "src")
+    if args.refresh_docs:
+        return refresh_docs()
     variants.register()
     command("lab9.smoke")
     command("lab9.evalset", "--build", "--check")
@@ -245,10 +261,52 @@ def main():
     render_card(spec1, spec2, reports, aa, detection_output, scorecard, traps)
     render_prd(spec1, reports["baseline_v1"])
     (REPORTS / "submission_evidence.txt").write_text("\n\n".join(outputs) + "\n\n" + scorecard + traps, encoding="utf-8")
-    write_doc("PR_BODY.md", "# Lab 09 — Evaluation & Failure Analysis\n\nHoàn thành Core, Advanced và Expert trên MockLLM.\n\n"
-              + "## Gate và trap\n```text\n" + "\n\n".join(outputs) + "\n```\n\n## Mutation\n```text\n" + scorecard
-              + "\n```\n\n## A/A\n```json\n" + json.dumps(aa, indent=2) + "\n```\n\nCI GitHub phải xanh trước khi merge vào main; kết quả local không thay thế Actions.\n")
+    aa_cli = command("lab9.mutation", "--spec", "config/metric_spec_v2.yaml", "--aa", "66,77,88,99,110")
+    (REPORTS / "aa_cli.txt").write_text(aa_cli, encoding="utf-8")
+    render_pr(outputs, scorecard, aa, aa_cli)
     print("PASS: reports and evidence-backed documents generated. Run git add -f src/reports from repo root; review docs/PR_BODY.md before opening the PR.")
+    return 0
+
+
+def render_pr(outputs, scorecard, aa, aa_cli):
+    write_doc("PR_BODY.md", "# Lab 09 — Evaluation & Failure Analysis\n\nBài làm bổ sung taxonomy, hiệu chỉnh judge, grader và gate cho agent hoàn tiền LogiX-VN. Trên bộ kiểm tra công khai, gate chặn đủ ba bản gài lỗi và bốn trap, đồng thời cho fixed và honest_refactor đi qua. Kết quả này chưa thay thế bộ chấm ẩn.\n\n"
+              + "## Gate và trap\n```text\n" + "\n\n".join(outputs) + "\n```\n\n## Mutation\n```text\n" + scorecard
+              + "\n```\n\n## A/A\n\nLệnh chạy trong src/:\n```text\npython -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110\n```\n\nOutput:\n```text\n" + aa_cli.strip()
+              + "\n```\n\nDelta tổng hợp từ report:\n```json\n" + json.dumps(aa, indent=2) + "\n```\n\nTrước khi merge, kiểm tra cả eval-gate và eval-gate-v2 đều thành công trên commit mới nhất.\n")
+
+
+def refresh_docs(aa_cli=None):
+    spec1, spec2 = load_spec(), load_spec(Path("config/metric_spec_v2.yaml"))
+    reports = {}
+    for version, spec in (("v1", spec1), ("v2", spec2)):
+        shapes = ("swarm", "fixed", "seeded_regression") if version == "v1" else (
+            "swarm", "fixed", "honest_refactor", "seeded_regression", "slice_regression", "flaky_regression")
+        for shape in shapes:
+            key = f"baseline_{version}" if shape == "swarm" else f"{shape}_{version}"
+            filename = f"baseline_{version}.json" if shape == "swarm" else f"eval_{shape}{'_v2' if version == 'v2' else ''}.json"
+            report = json.loads((REPORTS / filename).read_text(encoding="utf-8"))
+            if report["manifest"]["eval_set_sha"] != sha12(Path(spec["eval_set"])) or gate.integrity_check(report, report, spec):
+                raise RuntimeError(f"Invalid existing report: {filename}; run the full submission pipeline")
+            reports[key] = report
+    evidence = (REPORTS / "submission_evidence.txt").read_text(encoding="utf-8")
+    scorecard_match = re.search(r"(?ms)^  fixed\s.*?^mutation score[^\n]*\n", evidence)
+    traps_match = re.search(r"(?ms)^trap evaluator_errors_as_nan.*\Z", evidence)
+    if not scorecard_match or not traps_match:
+        raise RuntimeError("Missing mutation/trap evidence; run the full submission pipeline")
+    scorecard, traps = scorecard_match.group(), traps_match.group()
+    outputs = evidence[:scorecard_match.start()].strip()
+    aa = json.loads((REPORTS / "aa_delta.json").read_text(encoding="utf-8"))
+    detection = json.loads((REPORTS / "detection.json").read_text(encoding="utf-8"))
+    detection_output = f"detection {detection['detection']:.2%}; false alarms {detection['false_alarm']:.2%}"
+    if aa_cli is None:
+        aa_cli = command("lab9.mutation", "--spec", "config/metric_spec_v2.yaml", "--aa", "66,77,88,99,110")
+    (REPORTS / "aa_cli.txt").write_text(aa_cli, encoding="utf-8")
+    render_judge()
+    render_trace(reports["baseline_v1"], reports["seeded_regression_v1"])
+    render_card(spec1, spec2, reports, aa, detection_output, scorecard, traps)
+    render_prd(spec1, reports["baseline_v1"])
+    render_pr([outputs], scorecard, aa, aa_cli)
+    print("PASS: documents refreshed from validated reports; official A/A output saved")
     return 0
 
 

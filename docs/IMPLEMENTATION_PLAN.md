@@ -16,13 +16,13 @@
 
 - M0 smoke: PASS; pip check không xung đột.
 - Eval set v1: 14 item, v2: 28 item; check 0 problem.
-- Test công khai và regression bổ sung: 42 passed.
+- Test có marker student của Lab 09 và regression bổ sung: 52 passed trong lần kiểm tra cuối.
 - Tone κ=0.757, P=0.857, R=0.8; helpful κ=0.375, P=1.0, R=0.3.
 - Trace C-002@11: event 3 model_override là bước sai đầu tiên trên seeded_regression; ledger 20.000 thay vì 0; fixed không ghi đè và ledger 0.
 
 Các thông tin trên không thay thế kết quả toàn pipeline hoặc GitHub Actions. Bộ chấm ẩn và key anchor giảng viên không có trong repo.
 
-## Lệnh chạy đầy đủ — giao người làm bài chạy để tiết kiệm quota
+## Tái lập kết quả
 
 Từ src với .venv đang bật:
 
@@ -30,7 +30,7 @@ Từ src với .venv đang bật:
 python -m lab9.submission
 ```
 
-Pipeline tốn nhiều lượt agent. Script fail ngay khi test, gate, detection, mutation hoặc trap không đạt. Nó sinh reports bằng code, chạy nguyên CLI mutation/traps và sinh lại judge_audit, trace_case, eval_card, PRD_v1.1, PR_BODY từ kết quả đo. Không sửa tay reports. Nếu có lỗi, giữ output để sửa implementation và chạy lại.
+Script dừng khi test, gate, detection, mutation hoặc trap không đạt. Các report được sinh bằng code; judge_audit, trace_case, eval_card, PRD_v1.1 và PR_BODY lấy số liệu từ kết quả đo. Khi có lỗi, cần kiểm tra log và sửa nguyên nhân trước khi chạy lại, không sửa tay report để đổi kết quả.
 
 Sau khi script in PASS, từ gốc repo:
 
